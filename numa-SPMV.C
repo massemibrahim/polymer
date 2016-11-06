@@ -407,6 +407,8 @@ void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
 }
 
 int parallel_main(int argc, char* argv[]) {  
+    printf("SPMV - parallel_main");
+
     char* iFile;
     bool binary = false;
     bool symmetric = false;

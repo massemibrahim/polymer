@@ -618,6 +618,8 @@ void PageRank(graph<vertex> &GA, int maxIter) {
 }
 
 int parallel_main(int argc, char* argv[]) {  
+    printf("PageRank - parallel_main");
+
     char* iFile;
     bool binary = false;
     bool symmetric = false;

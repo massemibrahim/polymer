@@ -531,6 +531,8 @@ void BFS(intT start, graph<vertex> &GA) {
 }
 
 int parallel_main(int argc, char* argv[]) {  
+    printf("BFS - parallel_main");
+
     char* iFile;
     bool binary = false;
     bool symmetric = false;
