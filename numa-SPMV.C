@@ -60,7 +60,7 @@ struct SPMV_F {
     int rangeLow;
     int rangeHi;
     SPMV_F(double* _p_curr, double* _p_next, vertex* _V, int _rangeLow, int _rangeHi) : 
-	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {}
+	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {printf("SPMV - SPMV_F\n");}
 
     inline void *nextPrefetchAddr(intT index) {
 	return &p_curr[index];
@@ -100,7 +100,7 @@ struct SPMV_F {
 struct SPMV_Vertex_Reset {
     double* p_curr;
     SPMV_Vertex_Reset(double* _p_curr) :
-	p_curr(_p_curr) {}
+	p_curr(_p_curr) {printf("SPMV - SPMV_Vertex_Reset\n");}
     inline bool operator () (intT i) {
 	p_curr[i] = 0.0;
 	return 1;
@@ -133,6 +133,8 @@ struct SPMV_subworker_arg {
 
 template <class vertex>
 void *SPMVSubWorker(void *arg) {
+    printf("SPMV - SPMVSubWorker\n");
+
     SPMV_subworker_arg *my_arg = (SPMV_subworker_arg *)arg;
     wghGraph<vertex> &GA = *(wghGraph<vertex> *)my_arg->GA;
     const intT n = GA.n;
@@ -202,6 +204,8 @@ pthread_barrier_t timerBarr;
 
 template <class vertex>
 void *SPMVThread(void *arg) {
+    printf("SPMV - SPMVThread\n");
+
     SPMV_worker_arg *my_arg = (SPMV_worker_arg *)arg;
     wghGraph<vertex> &GA = *(wghGraph<vertex> *)my_arg->GA;
     int maxIter = my_arg->maxIter;
@@ -331,7 +335,7 @@ struct SPMV_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    SPMV_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){}
+    SPMV_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("SPMV - SPMV_Hash_F\n");}
     
     inline int hashFunc(int index) {
 	if (index >= shardNum * vertPerShard) {
@@ -354,6 +358,8 @@ struct SPMV_Hash_F {
 
 template <class vertex>
 void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
+    printf("SPMV - SPMV_main\n");
+    
     numOfNode = numa_num_configured_nodes();
     vPerNode = GA.n / numOfNode;
     CORES_PER_NODE = numa_num_configured_cpus() / numOfNode;
@@ -407,7 +413,7 @@ void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
 }
 
 int parallel_main(int argc, char* argv[]) {  
-    printf("SPMV - parallel_main");
+    printf("SPMV - parallel_main\n");
 
     char* iFile;
     bool binary = false;

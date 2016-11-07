@@ -58,7 +58,7 @@ void *fullGraph;
 
 struct BFS_F {
     intT* Parents;
-    BFS_F(intT* _Parents) : Parents(_Parents) {}
+    BFS_F(intT* _Parents) : Parents(_Parents) {printf("BFS - BFS_F\n");}
 
     inline void *nextPrefetchAddr(intT index) {
 	return NULL;
@@ -112,6 +112,8 @@ struct BFS_subworker_arg {
 
 template <class F, class vertex>
 bool* edgeMapDenseNoRep(graph<vertex> GA, vertices* frontier, F f, LocalFrontier *next, bool parallel = 0, Subworker_Partitioner &subworker = dummyPartitioner) {
+    printf("BFS - edgeMapDenseNoRep\n");
+
     intT numVertices = GA.n;
     graph<vertex> &fullG = *(graph<vertex> *)fullGraph;
     //intT size = next->endID - next->startID;
@@ -161,6 +163,8 @@ bool* edgeMapDenseNoRep(graph<vertex> GA, vertices* frontier, F f, LocalFrontier
 template <class F, class vertex>
 void edgeMapNoRep(graph<vertex> GA, vertices *V, F f, LocalFrontier *next, intT threshold = -1, 
 	     char option=DENSE, bool remDups=false, bool part = false, Subworker_Partitioner &subworker = dummyPartitioner) {
+    printf("BFS - edgeMapNoRep\n");
+
     intT numVertices = GA.n;
     uintT numEdges = GA.m;
     vertex *G = GA.V;    
@@ -206,6 +210,8 @@ void edgeMapNoRep(graph<vertex> GA, vertices *V, F f, LocalFrontier *next, intT 
 
 template <class vertex>
 void *BFSSubWorker(void *arg) {
+    printf("BFS - BFSSubWorker\n");
+
     BFS_subworker_arg *my_arg = (BFS_subworker_arg *)arg;
     graph<vertex> &GA = *(graph<vertex> *)my_arg->GA;
     const intT n = GA.n;
@@ -306,6 +312,8 @@ void *BFSSubWorker(void *arg) {
 
 template <class vertex>
 void *BFSWorker(void *arg) {
+    printf("BFS - BFSWorker\n");
+
     BFS_worker_arg *my_arg = (BFS_worker_arg *)arg;
     graph<vertex> &GA = *(graph<vertex> *)my_arg->GA;
     int tid = my_arg->tid;
@@ -452,7 +460,7 @@ struct PR_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){}
+    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("BFS - PR_Hash_F\n");}
     
     inline int hashFunc(int index) {
 	if (index >= shardNum * vertPerShard) {
@@ -475,6 +483,8 @@ struct PR_Hash_F {
 
 template <class vertex>
 void BFS(intT start, graph<vertex> &GA) {
+    printf("BFS - BFS\n");
+    
     numOfNode = numa_num_configured_nodes();
     int numOfCpu = numa_num_configured_cpus();
     CORES_PER_NODE = 10;//numOfCpu / numOfNode;
@@ -531,7 +541,7 @@ void BFS(intT start, graph<vertex> &GA) {
 }
 
 int parallel_main(int argc, char* argv[]) {  
-    printf("BFS - parallel_main");
+    printf("BFS - parallel_main\n");
 
     char* iFile;
     bool binary = false;

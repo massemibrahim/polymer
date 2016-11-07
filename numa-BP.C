@@ -591,7 +591,7 @@ void BeliefPropagation(graph<vertex> &GA, int maxIter) {
 }
 
 int parallel_main(int argc, char* argv[]) {  
-    printf("BP - parallel_main");
+    printf("BP - parallel_main\n");
 
     char* iFile;
     bool binary = false;

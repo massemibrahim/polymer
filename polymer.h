@@ -54,7 +54,7 @@ the vertices set should be set by each node
 */
 
 inline int SXCHG(char *ptr, char newv) {
-  printf("Polymer - SXCHG");
+  printf("Polymer - SXCHG\n");
 
   char ret = newv;
   __asm__ __volatile__ (
@@ -66,7 +66,7 @@ inline int SXCHG(char *ptr, char newv) {
 }
 
 int roundUp(double x) {
-    printf("Polymer - roundUp");
+    printf("Polymer - roundUp\n");
 
     int ones = x / 1;
     double others = x - ones;
@@ -88,7 +88,7 @@ struct Subworker_Partitioner {
     Custom_barrier local_custom;
     Custom_barrier subMaster_custom;
 
-    Subworker_Partitioner(int nSub):numOfSub(nSub){ printf("Polymer - struct Subworker_Partitioner"); }
+    Subworker_Partitioner(int nSub):numOfSub(nSub){ printf("Polymer - struct Subworker_Partitioner\n"); }
     
     inline bool isMaster() {return (tid + subTid == 0);}
     inline bool isSubMaster() {return (subTid == 0);}
@@ -111,7 +111,7 @@ struct Default_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    Default_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("Polymer - struct Default_Hash_F");}
+    Default_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("Polymer - struct Default_Hash_F\n");}
     
     inline int hashFunc(int index) {
         if (index >= shardNum * vertPerShard) {
@@ -134,7 +134,7 @@ struct Default_Hash_F {
 
 template <class vertex>
 void partitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int sizeOfOneEle, bool useOutDegree=false) {
-	printf("Polymer - partitionByDegree");
+	printf("Polymer - partitionByDegree\n");
 
     const intT n = GA.n;
     int *degrees = newA(int, n);
@@ -199,7 +199,7 @@ void partitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int size
 
 template <class vertex>
 void subPartitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int sizeOfOneEle, bool useOutDegree=false, bool useFakeDegree=false) {
-    printf("Polymer - subPartitionByDegree - Def#1");
+    printf("Polymer - subPartitionByDegree - Def#1\n");
 
     const intT n = GA.n;
     int *degrees = newA(int, n);
@@ -246,7 +246,7 @@ void subPartitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int s
 
 template <class vertex>
 void subPartitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int sizeOfOneEle, int subStart, int subEnd, bool useOutDegree=false, bool useFakeDegree=false) {
-    printf("Polymer - subPartitionByDegree - Def#2");
+    printf("Polymer - subPartitionByDegree - Def#2\n");
 
     const intT n = subEnd - subStart;
     int *degrees = newA(int, n);
@@ -293,7 +293,7 @@ void subPartitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int s
 
 template <class vertex, class Hash_F>
 void graphHasher(graph<vertex> &GA, Hash_F hash) {
-    printf("Polymer - graphHasher");
+    printf("Polymer - graphHasher\n");
 
     vertex *V = GA.V;
     vertex *newVertexSet = (vertex *)malloc(sizeof(vertex) * GA.n);
@@ -314,7 +314,7 @@ void graphHasher(graph<vertex> &GA, Hash_F hash) {
 
 template <class vertex, class Hash_F>
 void graphInEdgeHasher(graph<vertex> &GA, Hash_F hash) {
-    printf("Polymer - graphInEdgeHasher");
+    printf("Polymer - graphInEdgeHasher\n");
 
     vertex *V = GA.V;
     vertex *newVertexSet = (vertex *)malloc(sizeof(vertex) * GA.n);
@@ -335,7 +335,7 @@ void graphInEdgeHasher(graph<vertex> &GA, Hash_F hash) {
 
 template <class vertex, class Hash_F>
 void graphAllEdgeHasher(graph<vertex> &GA, Hash_F hash) {
-    printf("Polymer - graphAllEdgeHasher");
+    printf("Polymer - graphAllEdgeHasher\n");
 
     vertex *V = GA.V;
     vertex *newVertexSet = (vertex *)malloc(sizeof(vertex) * GA.n);
@@ -361,7 +361,7 @@ void graphAllEdgeHasher(graph<vertex> &GA, Hash_F hash) {
 
 template <class vertex>
 graph<vertex> graphFilter(graph<vertex> &GA, int rangeLow, int rangeHi, bool useOutEdge=true) {
-    printf("Polymer - graphFilter");
+    printf("Polymer - graphFilter\n");
 
     vertex *V = GA.V;
     vertex *newVertexSet = (vertex *)numa_alloc_local(sizeof(vertex) * GA.n);
@@ -423,7 +423,7 @@ graph<vertex> graphFilter(graph<vertex> &GA, int rangeLow, int rangeHi, bool use
 
 template <class vertex>
 graph<vertex> graphFilter2Direction(graph<vertex> &GA, int rangeLow, int rangeHi) {
-    printf("Polymer - graphFilter2Direction");
+    printf("Polymer - graphFilter2Direction\n");
 
     vertex *V = GA.V;
     vertex *newVertexSet = (vertex *)numa_alloc_local(sizeof(vertex) * GA.n);
@@ -517,7 +517,7 @@ graph<vertex> graphFilter2Direction(graph<vertex> &GA, int rangeLow, int rangeHi
 }
 
 void *mapDataArray(int numOfShards, int *sizeArr, int sizeOfOneEle) {
-    printf("Polymer - mapDataArray");
+    printf("Polymer - mapDataArray\n");
 
     int numOfPages = 0;
     for (int i = 0; i < numOfShards; i++) {	
@@ -565,7 +565,7 @@ struct LocalFrontier {
     AsyncChunk **localQueue;
     bool isDense;
     
-    LocalFrontier(bool *_b, int start, int end):b(_b), startID(start), endID(end), n(end - start), m(0), isDense(true), s(NULL), outEdgesCount(0), sparseChunks(NULL), chunkSizes(NULL){printf("Polymer - struct LocalFrontier");}
+    LocalFrontier(bool *_b, int start, int end):b(_b), startID(start), endID(end), n(end - start), m(0), isDense(true), s(NULL), outEdgesCount(0), sparseChunks(NULL), chunkSizes(NULL){printf("Polymer - struct LocalFrontier\n");}
     
     bool inRange(int index) { return (startID <= index && index < endID);}
     inline void setBit(int index, bool val) { b[index-startID] = val;}
@@ -679,7 +679,7 @@ struct vertices {
     intT insertTail;
     
     vertices(int _numOfNodes) {
-    printf("Polymer - struct vertices");
+    printf("Polymer - struct vertices\n");
 
 	this->numOfNodes = _numOfNodes;
 	d = (bool **)malloc(numOfNodes * sizeof(bool*));
@@ -947,7 +947,7 @@ Subworker_Partitioner dummyPartitioner(1);
 
 template <class F, class vertex>
 bool* edgeMapDense(graph<vertex> GA, vertices* frontier, F f, LocalFrontier *next, bool parallel = 0, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapDense");
+    printf("Polymer - edgeMapDense\n");
 
     intT numVertices = GA.n;
     intT size = next->endID - next->startID;
@@ -995,7 +995,7 @@ bool* edgeMapDense(graph<vertex> GA, vertices* frontier, F f, LocalFrontier *nex
 
 template <class F, class vertex>
 bool* edgeMapDenseForward(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool part = false, int start = 0, int end = 0) {
-    printf("Polymer - edgeMapDenseForward");
+    printf("Polymer - edgeMapDenseForward\n");
 
     intT numVertices = GA.n;
     vertex *G = GA.V;
@@ -1063,7 +1063,7 @@ bool* edgeMapDenseForward(graph<vertex> GA, vertices *frontier, F f, LocalFronti
 
 template <class F, class vertex>
 bool* edgeMapDenseForwardDynamic(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, Subworker_Partitioner &subworker=dummyPartitioner) {
-    printf("Polymer - edgeMapDenseForwardDynamic");
+    printf("Polymer - edgeMapDenseForwardDynamic\n");
 
     intT numVertices = GA.n;
     vertex *G = GA.V;
@@ -1126,7 +1126,7 @@ bool* edgeMapDenseForwardDynamic(graph<vertex> GA, vertices *frontier, F f, Loca
 
 template <class F, class vertex>
 bool* edgeMapDenseReduce(graph<vertex> GA, vertices* frontier, F f, LocalFrontier *next, bool parallel = 0, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapDenseReduce");
+    printf("Polymer - edgeMapDenseReduce\n");
 
     intT numVertices = GA.n;
     intT size = next->endID - next->startID;
@@ -1201,7 +1201,7 @@ bool* edgeMapDenseReduce(graph<vertex> GA, vertices* frontier, F f, LocalFrontie
 
 template <class F, class vertex>
 bool* edgeMapDenseDynamic(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, Subworker_Partitioner &subworker=dummyPartitioner) {
-    printf("Polymer - edgeMapDenseDynamic");
+    printf("Polymer - edgeMapDenseDynamic\n");
 
     intT numVertices = GA.n;
     vertex *G = GA.V;
@@ -1296,7 +1296,7 @@ bool* edgeMapDenseDynamic(graph<vertex> GA, vertices *frontier, F f, LocalFronti
 
 template <class F, class vertex>
 bool* edgeMapDenseBP(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool part = false, int start = 0, int end = 0) {
-    printf("Polymer - edgeMapDenseBP");
+    printf("Polymer - edgeMapDenseBP\n");
 
     intT numVertices = GA.n;
     vertex *G = GA.V;
@@ -1342,7 +1342,7 @@ bool* edgeMapDenseBP(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *n
 
 template <class F, class vertex>
 bool* edgeMapDenseForwardGlobalWrite(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *nexts[], Subworker_Partitioner &subworker) {
-    printf("Polymer - edgeMapDenseForwardGlobalWrite");
+    printf("Polymer - edgeMapDenseForwardGlobalWrite\n");
 
     intT numVertices = GA.n;
     vertex *G = GA.V;
@@ -1386,7 +1386,7 @@ bool* edgeMapDenseForwardGlobalWrite(graph<vertex> GA, vertices *frontier, F f, 
 }
 
 AsyncChunk *newChunk(int blockSize) {
-    printf("Polymer - newChunk");
+    printf("Polymer - newChunk\n");
 
     AsyncChunk *myChunk = (AsyncChunk *)malloc(sizeof(AsyncChunk));
     myChunk->s = (intT *)malloc(sizeof(intT) * blockSize);
@@ -1397,7 +1397,7 @@ AsyncChunk *newChunk(int blockSize) {
 
 template <class F, class vertex>
 void edgeMapSparseAsync(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapSparseAsync");
+    printf("Polymer - edgeMapSparseAsync\n");
 
     const int BLOCK_SIZE = 64;
     
@@ -1553,7 +1553,7 @@ void edgeMapSparseAsync(graph<vertex> GA, vertices *frontier, F f, LocalFrontier
 
 template <class F, class vertex>
 void edgeMapSparseAsyncPipe(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapSparseAsyncPipe");
+    printf("Polymer - edgeMapSparseAsyncPipe\n");
 
     const int BLOCK_SIZE = 64;    
     vertex *V = GA.V;
@@ -1798,7 +1798,7 @@ void switchFrontier(int nodeNum, vertices *V, LocalFrontier* &next);
 
 template <class F, class vertex>
 void edgeMapSparseV5(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapSparseV5");
+    printf("Polymer - edgeMapSparseV5\n");
 
     vertex *V = GA.V;
     intT currM = frontier->numNonzeros();
@@ -1877,7 +1877,7 @@ void edgeMapSparseV5(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *n
 
 template <class F, class vertex>
 void edgeMapSparseV4(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool firstTime = false, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapSparseV4");
+    printf("Polymer - edgeMapSparseV4\n");
 
     // in V4, all thread has its own chunk.
     vertex *V = GA.V;
@@ -1975,7 +1975,7 @@ void edgeMapSparseV4(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *n
 
 template <class F, class vertex>
 void edgeMapSparseV3(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool part = false, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapSparseV3");
+    printf("Polymer - edgeMapSparseV3\n");
 
     vertex *V = GA.V;
     if (part) {
@@ -2054,7 +2054,7 @@ void edgeMapSparseV3(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *n
 
 template <class F, class vertex>
 void edgeMapSparseV2(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool part = false, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMapSparseV2");
+    printf("Polymer - edgeMapSparseV2\n");
 
     vertex *V = GA.V;
     if (part) {
@@ -2191,7 +2191,7 @@ void edgeMapSparseV2(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *n
 
 template <class F, class Vert_F, class vertex>
 void edgeMapSparse(graph<vertex> GA, vertices *frontier, F f, Vert_F vf, LocalFrontier *next, Subworker_Partitioner &subworker=dummyPartitioner) {
-    printf("Polymer - edgeMapSparse");
+    printf("Polymer - edgeMapSparse\n");
 
     vertex *V = GA.V;
     intT sparseIter = 0;
@@ -2276,7 +2276,7 @@ void edgeMapSparse(graph<vertex> GA, vertices *frontier, F f, Vert_F vf, LocalFr
 static int edgesTraversed = 0;
 
 void switchFrontier(int nodeNum, vertices *V, LocalFrontier* &next) {
-    printf("Polymer - switchFrontier");
+    printf("Polymer - switchFrontier\n");
 
     LocalFrontier *current = V->getFrontier(nodeNum);
     intT size = V->getSize(nodeNum);
@@ -2297,7 +2297,7 @@ void clearLocalFrontier(LocalFrontier *next, int nodeNum, int subNum, int totalS
 template <class F, class vertex>
 void edgeMap(graph<vertex> GA, vertices *V, F f, LocalFrontier *next, intT threshold = -1, 
 	     char option=DENSE, bool remDups=false, bool part = false, Subworker_Partitioner &subworker = dummyPartitioner) {
-    printf("Polymer - edgeMap");
+    printf("Polymer - edgeMap\n");
 
     intT numVertices = GA.n;
     uintT numEdges = GA.m;
@@ -2369,7 +2369,7 @@ void edgeMap(graph<vertex> GA, vertices *V, F f, LocalFrontier *next, intT thres
 //*****VERTEX FUNCTIONS*****
 template<class vertex>
 void vertexCounter(graph<vertex> GA, LocalFrontier *frontier, int nodeNum, int subNum, int totalSub) {
-    printf("Polymer - vertexCounter");
+    printf("Polymer - vertexCounter\n");
 
     if (!frontier->isDense)
 	return;
@@ -2399,7 +2399,7 @@ void vertexCounter(graph<vertex> GA, LocalFrontier *frontier, int nodeNum, int s
 
 template <class F>
 void vertexMap(vertices *V, F add, int nodeNum) {
-    printf("Polymer - vertexMap - Def#1");
+    printf("Polymer - vertexMap - Def#1\n");
 
     int size = V->getSize(nodeNum);
     int offset = V->getOffset(nodeNum);
@@ -2412,7 +2412,7 @@ void vertexMap(vertices *V, F add, int nodeNum) {
 
 template <class F>
 void vertexMap(vertices *V, F add, int nodeNum, int subNum, int totalSub) {
-    printf("Polymer - vertexMap - Def#2");
+    printf("Polymer - vertexMap - Def#2\n");
 
     if (V->isDense) {
 	int size = V->getSize(nodeNum);
@@ -2445,7 +2445,7 @@ void vertexMap(vertices *V, F add, int nodeNum, int subNum, int totalSub) {
 }
 
 void clearLocalFrontier(LocalFrontier *next, int nodeNum, int subNum, int totalSub) {
-    printf("Polymer - clearLocalFrontier");
+    printf("Polymer - clearLocalFrontier\n");
 
     int size = next->endID - next->startID;
     //int offset = V->getOffset(nodeNum);
@@ -2464,7 +2464,7 @@ void clearLocalFrontier(LocalFrontier *next, int nodeNum, int subNum, int totalS
 
 template <class F>
 void vertexFilter(vertices *V, F filter, int nodeNum, bool *result) {
-    printf("Polymer - vertexFilter - Def#1");
+    printf("Polymer - vertexFilter - Def#1\n");
 
     int size = V->getSize(nodeNum);
     int offset = V->getOffset(nodeNum);
@@ -2478,7 +2478,7 @@ void vertexFilter(vertices *V, F filter, int nodeNum, bool *result) {
 
 template <class F>
 void vertexFilter(vertices *V, F filter, int nodeNum, int subNum, int totalSub, LocalFrontier *result) {
-    printf("Polymer - vertexFilter - Def#2");
+    printf("Polymer - vertexFilter - Def#2\n");
 
     int size = V->getSize(nodeNum);
     int offset = V->getOffset(nodeNum);
