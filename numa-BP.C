@@ -74,6 +74,8 @@ struct VertexData {
 
 template <class ET>
 inline void writeDiv(ET *a, ET b) {
+  printf("BP - writeDiv\n");
+
   volatile ET newV, oldV; 
   do {oldV = *a; newV = oldV / b;}
   while (!CAS(a, oldV, newV));
@@ -81,6 +83,8 @@ inline void writeDiv(ET *a, ET b) {
 
 template <class ET>
 inline void writeMult(ET *a, ET b) {
+  printf("BP - writeMult\n");
+
   volatile ET newV, oldV; 
   do {oldV = *a; newV = oldV * b;}
   while (!CAS(a, oldV, newV));
@@ -97,7 +101,7 @@ struct BP_F {
     intT *offsets;
     intT rangeLow;
     BP_F(EdgeWeight *_edgeW, EdgeData *_edgeD_curr, EdgeData *_edgeD_next, VertexInfo *_vertI, VertexData *_vertD_curr, VertexData *_vertD_next, intT *_offsets, intT _rangeLow=0) : 
-	edgeW(_edgeW), edgeD_curr(_edgeD_curr), edgeD_next(_edgeD_next), vertI(_vertI), vertD_curr(_vertD_curr), vertD_next(_vertD_next), offsets(_offsets),rangeLow(_rangeLow) {}
+	edgeW(_edgeW), edgeD_curr(_edgeD_curr), edgeD_next(_edgeD_next), vertI(_vertI), vertD_curr(_vertD_curr), vertD_next(_vertD_next), offsets(_offsets),rangeLow(_rangeLow) {printf("BP - struct BP_F\n");}
     inline bool update(intT s, intT d, intT edgeIdx){
 	intT dstIdx = offsets[s] + edgeIdx;
 	for (int i = 0; i < NSTATES; i++) {
@@ -130,7 +134,7 @@ struct BP_F {
 struct BP_Vertex_Reset {
     VertexData *vertD;
     BP_Vertex_Reset(VertexData *_vertD) :
-	vertD(_vertD) {}
+	vertD(_vertD) {printf("BP - struct BP_Vertex_Reset\n");}
     inline bool operator () (intT i) {
 	for (int i = 0; i < NSTATES; i++) {
 	    vertD[i].product[i] = 1.0;
@@ -178,6 +182,8 @@ struct BP_subworker_arg {
 
 template <class F, class vertex>
 bool* edgeMapDenseBPNoRep(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool part = false, Subworker_Partitioner &subworker=dummyPartitioner) {
+    printf("BP - edgeMapDenseBPNoRep\n");
+
     intT numVertices = GA.n;
     vertex *G = GA.V;
 
@@ -231,6 +237,8 @@ bool* edgeMapDenseBPNoRep(graph<vertex> GA, vertices *frontier, F f, LocalFronti
 
 template <class vertex>
 void *BeliefPropagationSubWorker(void *arg) {
+    printf("BP - BeliefPropagationSubWorker\n");
+
     BP_subworker_arg *my_arg = (BP_subworker_arg *)arg;
     graph<vertex> &GA = *(graph<vertex> *)my_arg->GA;
     const intT n = GA.n;
@@ -323,6 +331,8 @@ pthread_barrier_t timerBarr;
 
 template <class vertex>
 void *BeliefPropagationThread(void *arg) {
+    printf("BP - BeliefPropagationThread\n");
+
     BP_worker_arg *my_arg = (BP_worker_arg *)arg;
     graph<vertex> &GA = *(graph<vertex> *)my_arg->GA;
     int maxIter = my_arg->maxIter;
@@ -511,7 +521,7 @@ struct BP_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    BP_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){}
+    BP_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("BP - struct BP_Hash_F\n");}
     
     inline int hashFunc(int index) {
 	if (index >= shardNum * vertPerShard) {
@@ -534,6 +544,8 @@ struct BP_Hash_F {
 
 template <class vertex>
 void BeliefPropagation(graph<vertex> &GA, int maxIter) {
+    printf("BP - BeliefPropagation\n");
+    
     numOfNode = numa_num_configured_nodes();
     vPerNode = GA.n / numOfNode;
     CORES_PER_NODE = numa_num_configured_cpus() / numOfNode;

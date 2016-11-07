@@ -58,7 +58,7 @@ void *fullGraph;
 
 struct BFS_F {
     intT* Parents;
-    BFS_F(intT* _Parents) : Parents(_Parents) {printf("BFS - BFS_F\n");}
+    BFS_F(intT* _Parents) : Parents(_Parents) {printf("BFS - struct BFS_F\n");}
 
     inline void *nextPrefetchAddr(intT index) {
 	return NULL;
@@ -460,7 +460,7 @@ struct PR_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("BFS - PR_Hash_F\n");}
+    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("BFS - struct PR_Hash_F\n");}
     
     inline int hashFunc(int index) {
 	if (index >= shardNum * vertPerShard) {
@@ -484,7 +484,7 @@ struct PR_Hash_F {
 template <class vertex>
 void BFS(intT start, graph<vertex> &GA) {
     printf("BFS - BFS\n");
-    
+
     numOfNode = numa_num_configured_nodes();
     int numOfCpu = numa_num_configured_cpus();
     CORES_PER_NODE = 10;//numOfCpu / numOfNode;

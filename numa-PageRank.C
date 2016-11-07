@@ -68,7 +68,7 @@ struct PR_F {
     int rangeLow;
     int rangeHi;
     PR_F(double* _p_curr, double* _p_next, vertex* _V, int _rangeLow, int _rangeHi) : 
-	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {}
+	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {printf("PageRank - struct PR_F\n");}
 
     inline void *nextPrefetchAddr(intT index) {
 	return &p_curr[index];
@@ -129,7 +129,7 @@ struct PR_Vertex_F {
     double* p_next;
     PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intT n) :
 	p_curr(_p_curr), p_next(_p_next), 
-	damping(_damping), addedConstant((1-_damping)*(1/(double)n)){}
+	damping(_damping), addedConstant((1-_damping)*(1/(double)n)){printf("PageRank - struct PR_Vertex_F\n");}
     inline bool operator () (intT i) {
 	p_next[i] = damping*p_next[i] + addedConstant;
 	return 1;
@@ -140,7 +140,7 @@ struct PR_Vertex_F {
 struct PR_Vertex_Reset {
     double* p_curr;
     PR_Vertex_Reset(double* _p_curr) :
-	p_curr(_p_curr) {}
+	p_curr(_p_curr) {printf("PageRank - struct PR_Vertex_Reset\n");}
     inline bool operator () (intT i) {
 	p_curr[i] = 0.0;
 	return 1;
@@ -176,6 +176,8 @@ struct PR_subworker_arg {
 
 template <class F, class vertex>
 bool* edgeMapDenseForwardOTHER(graph<vertex> GA, vertices *frontier, F f, LocalFrontier *next, bool part = false, int start = 0, int end = 0) {
+    printf("PageRank - edgeMapDenseForwardOTHER\n");
+
     intT numVertices = GA.n;
     vertex *G = GA.V;
 
@@ -231,6 +233,8 @@ bool* edgeMapDenseForwardOTHER(graph<vertex> GA, vertices *frontier, F f, LocalF
 
 template <class vertex>
 void *PageRankSubWorker(void *arg) {
+    printf("PageRank - PageRankSubWorker\n");
+
     PR_subworker_arg *my_arg = (PR_subworker_arg *)arg;
     graph<vertex> &GA = *(graph<vertex> *)my_arg->GA;
     const intT n = GA.n;
@@ -345,6 +349,8 @@ pthread_barrier_t timerBarr;
 
 template <class vertex>
 void *PageRankThread(void *arg) {
+    printf("PageRank - PageRankThread\n");
+
     PR_worker_arg *my_arg = (PR_worker_arg *)arg;
     graph<vertex> &GA = *(graph<vertex> *)my_arg->GA;
     int maxIter = my_arg->maxIter;
@@ -524,7 +530,7 @@ struct PR_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){}
+    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("PageRank - struct PR_Hash_F\n");}
     
     inline int hashFunc(int index) {
 	if (index >= shardNum * vertPerShard) {
@@ -547,6 +553,8 @@ struct PR_Hash_F {
 
 template <class vertex>
 void PageRank(graph<vertex> &GA, int maxIter) {
+    printf("PageRank - PageRank\n");
+    
     numOfNode = numa_num_configured_nodes();
     vPerNode = GA.n / numOfNode;
     CORES_PER_NODE = numa_num_configured_cpus() / numOfNode;

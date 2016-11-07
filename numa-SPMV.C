@@ -60,7 +60,7 @@ struct SPMV_F {
     int rangeLow;
     int rangeHi;
     SPMV_F(double* _p_curr, double* _p_next, vertex* _V, int _rangeLow, int _rangeHi) : 
-	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {printf("SPMV - SPMV_F\n");}
+	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {printf("SPMV - struct SPMV_F\n");}
 
     inline void *nextPrefetchAddr(intT index) {
 	return &p_curr[index];
@@ -100,7 +100,7 @@ struct SPMV_F {
 struct SPMV_Vertex_Reset {
     double* p_curr;
     SPMV_Vertex_Reset(double* _p_curr) :
-	p_curr(_p_curr) {printf("SPMV - SPMV_Vertex_Reset\n");}
+	p_curr(_p_curr) {printf("SPMV - struct SPMV_Vertex_Reset\n");}
     inline bool operator () (intT i) {
 	p_curr[i] = 0.0;
 	return 1;
@@ -335,7 +335,7 @@ struct SPMV_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    SPMV_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("SPMV - SPMV_Hash_F\n");}
+    SPMV_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("SPMV - struct SPMV_Hash_F\n");}
     
     inline int hashFunc(int index) {
 	if (index >= shardNum * vertPerShard) {
