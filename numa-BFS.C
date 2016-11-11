@@ -1,9 +1,9 @@
-/* 
+/*
  * This code is part of the project "NUMA-aware Graph-structured Analytics"
- * 
+ *
  *
  * Copyright (C) 2014 Institute of Parallel And Distributed Systems (IPADS), Shanghai Jiao Tong University
- *     All rights reserved 
+ *     All rights reserved
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- * 
+ *
  * For more about this software, visit:
  *
  *     http://ipads.se.sjtu.edu.cn/projects/polymer.html
@@ -58,29 +58,36 @@ void *fullGraph;
 
 struct BFS_F {
     intT* Parents;
-    BFS_F(intT* _Parents) : Parents(_Parents) {printf("BFS - struct BFS_F\n");}
+    BFS_F(intT* _Parents) : Parents(_Parents) {
+        printf("BFS - struct BFS_F\n");
+    }
 
     inline void *nextPrefetchAddr(intT index) {
-	return NULL;
+        return NULL;
     }
     inline bool update (intT s, intT d) { //Update
-	if(Parents[d] == -1) { Parents[d] = s; return 1; }
-	else return 0;
+        if(Parents[d] == -1) {
+            Parents[d] = s;
+            return 1;
+        }
+        else return 0;
     }
-    inline bool updateAtomic (intT s, intT d){ //atomic version of Update
-	return (CAS(&Parents[d],(intT)-1,s));
+    inline bool updateAtomic (intT s, intT d) { //atomic version of Update
+        return (CAS(&Parents[d],(intT)-1,s));
     }
-    
+
     inline void vertUpdate(intT v) {
-	return;
+        return;
     }
     //cond function checks if vertex has been visited yet
-    inline bool cond (intT d) { return (Parents[d] == -1); } 
+    inline bool cond (intT d) {
+        return (Parents[d] == -1);
+    }
 };
 
 struct BFS_Vert_F {
     inline bool operator () (intT i) {
-	return 1;
+        return 1;
     }
 };
 
@@ -121,7 +128,7 @@ bool* edgeMapDenseNoRep(graph<vertex> GA, vertices* frontier, F f, LocalFrontier
     vertex *G = fullG.V;
 
     if (subworker.isSubMaster()) {
-	frontier->nextFrontiers[subworker.tid] = next;
+        frontier->nextFrontiers[subworker.tid] = next;
     }
 
     subworker.globalWait();
@@ -137,74 +144,74 @@ bool* edgeMapDenseNoRep(graph<vertex> GA, vertices* frontier, F f, LocalFrontier
     intT startPos = subSize * subworker.subTid;
     intT endPos = subSize * (subworker.subTid + 1);
     if (subworker.subTid == CORES_PER_NODE - 1) {
-	endPos = size;
+        endPos = size;
     }
 
     startPos += currOffset;
     endPos += currOffset;
 
-    for (intT i = startPos; i < endPos; i++){
-	//next->setBit(i, false);
-	if (f.cond(i)) { 
-	    intT d = G[i].getInDegree();
-	    for(intT j=0; j<d; j++){
-		intT ngh = G[i].getInNeighbor(j);
-		if (frontier->getBit(ngh) && f.updateAtomic(ngh,i)) {
-		    currBitVector[i - currOffset] = true;
-		}
-		if(!f.cond(i)) break;
-		//__builtin_prefetch(f.nextPrefetchAddr(G[i].getInNeighbor(j+3)), 1, 3);
-	    }
-	}
+    for (intT i = startPos; i < endPos; i++) {
+        //next->setBit(i, false);
+        if (f.cond(i)) {
+            intT d = G[i].getInDegree();
+            for(intT j=0; j<d; j++) {
+                intT ngh = G[i].getInNeighbor(j);
+                if (frontier->getBit(ngh) && f.updateAtomic(ngh,i)) {
+                    currBitVector[i - currOffset] = true;
+                }
+                if(!f.cond(i)) break;
+                //__builtin_prefetch(f.nextPrefetchAddr(G[i].getInNeighbor(j+3)), 1, 3);
+            }
+        }
     }
     return NULL;
 }
 
 template <class F, class vertex>
-void edgeMapNoRep(graph<vertex> GA, vertices *V, F f, LocalFrontier *next, intT threshold = -1, 
-	     char option=DENSE, bool remDups=false, bool part = false, Subworker_Partitioner &subworker = dummyPartitioner) {
+void edgeMapNoRep(graph<vertex> GA, vertices *V, F f, LocalFrontier *next, intT threshold = -1,
+                  char option=DENSE, bool remDups=false, bool part = false, Subworker_Partitioner &subworker = dummyPartitioner) {
     printf("BFS - edgeMapNoRep\n");
 
     intT numVertices = GA.n;
     uintT numEdges = GA.m;
-    vertex *G = GA.V;    
+    vertex *G = GA.V;
     intT m = V->numNonzeros() + V->getEdgeStat();
-    
+
     int start = subworker.dense_start;
     int end = subworker.dense_end;
 
-    if (m >= threshold) {       
-	//Dense part	
-	if (subworker.isMaster()) {
-	    printf("Dense: %d %d\n", V->numNonzeros(), m);
-	    V->toDense();
-	}
+    if (m >= threshold) {
+        //Dense part
+        if (subworker.isMaster()) {
+            printf("Dense: %d %d\n", V->numNonzeros(), m);
+            V->toDense();
+        }
 
-	if (subworker.isSubMaster()) {
-	    next->sparseCounter = 0;
-	}
+        if (subworker.isSubMaster()) {
+            next->sparseCounter = 0;
+        }
 
-	clearLocalFrontier(next, subworker.tid, subworker.subTid, subworker.numOfSub);
+        clearLocalFrontier(next, subworker.tid, subworker.subTid, subworker.numOfSub);
 
-	subworker.globalWait();
-	
-	bool* R = (option == DENSE_FORWARD) ? 
-	    edgeMapDenseForward(GA, V, f, next, part, start, end) :
-	    edgeMapDenseNoRep(GA, V, f, next, option, subworker);
-	next->isDense = true;
+        subworker.globalWait();
+
+        bool* R = (option == DENSE_FORWARD) ?
+                  edgeMapDenseForward(GA, V, f, next, part, start, end) :
+                  edgeMapDenseNoRep(GA, V, f, next, option, subworker);
+        next->isDense = true;
     } else {
-	//Sparse part
-	if (subworker.isMaster()) {
-	    //printf("Sparse: %d %d\n", V->numNonzeros(), m);
-	    V->toSparse();
-	}
-	subworker.globalWait();
-	if (V->firstSparse && subworker.isMaster()) {
-	    printf("my first sparse\n");
-	}
-	
-	edgeMapSparseV3(GA, V, f, next, part, subworker);
-	next->isDense = false;
+        //Sparse part
+        if (subworker.isMaster()) {
+            //printf("Sparse: %d %d\n", V->numNonzeros(), m);
+            V->toSparse();
+        }
+        subworker.globalWait();
+        if (V->firstSparse && subworker.isMaster()) {
+            printf("my first sparse\n");
+        }
+
+        edgeMapSparseV3(GA, V, f, next, part, subworker);
+        next->isDense = false;
     }
 }
 
@@ -223,7 +230,7 @@ void *BFSSubWorker(void *arg) {
     LocalFrontier *output = my_arg->localFrontier;
 
     intT *parents = my_arg->parents_ptr;
-    
+
     int currIter = 0;
     int rangeLow = my_arg->rangeLow;
     int rangeHi = my_arg->rangeHi;
@@ -246,64 +253,64 @@ void *BFSSubWorker(void *arg) {
     subworker.leader_barr = &subMasterBarr;
     subworker.local_custom = localCustom;
     subworker.subMaster_custom = globalCustom;
-    
+
 
     if (subworker.isMaster()) {
-	pthread_barrier_init(&subMasterBarr, NULL, Frontier->numOfNodes);
+        pthread_barrier_init(&subMasterBarr, NULL, Frontier->numOfNodes);
     }
 
     pthread_barrier_wait(local_barr);
 
-    if (subTid == 0) 
-	Frontier->calculateNumOfNonZero(tid);
+    if (subTid == 0)
+        Frontier->calculateNumOfNonZero(tid);
 
     pthread_barrier_wait(global_barr);
 
     struct timeval startT, endT;
     struct timezone tz = {0, 0};
-    while(!Frontier->isEmpty() || currIter == 0){ //loop until frontier is empty
-	currIter++;
-	if (tid + subTid == 0) {
-	    numVisited += Frontier->numNonzeros();
-	    //printf("num of non zeros: %d\n", Frontier->numNonzeros());
-	}
+    while(!Frontier->isEmpty() || currIter == 0) { //loop until frontier is empty
+        currIter++;
+        if (tid + subTid == 0) {
+            numVisited += Frontier->numNonzeros();
+            //printf("num of non zeros: %d\n", Frontier->numNonzeros());
+        }
 
-	//pthread_barrier_wait(global_barr);
-	//apply edgemap
-	gettimeofday(&startT, &tz);
-	edgeMapNoRep(GA, Frontier, BFS_F(parents), output, 0, DENSE_PARALLEL, false, true, subworker);
-	subworker.localWait();
-	vertexCounter(GA, output, tid, subTid, CORES_PER_NODE);
-	//edgeMapSparseAsync(GA, Frontier, BFS_F(parents), output, subworker);
-	if (subTid == 0) {
-	    //pthread_barrier_wait(global_barr);
-	    subworker.globalWait();
-	    switchFrontier(tid, Frontier, output); //set new frontier
-	} else {
-	    output = Frontier->getFrontier(tid);
-	    //pthread_barrier_wait(global_barr);
-	    subworker.globalWait();
-	}
+        //pthread_barrier_wait(global_barr);
+        //apply edgemap
+        gettimeofday(&startT, &tz);
+        edgeMapNoRep(GA, Frontier, BFS_F(parents), output, 0, DENSE_PARALLEL, false, true, subworker);
+        subworker.localWait();
+        vertexCounter(GA, output, tid, subTid, CORES_PER_NODE);
+        //edgeMapSparseAsync(GA, Frontier, BFS_F(parents), output, subworker);
+        if (subTid == 0) {
+            //pthread_barrier_wait(global_barr);
+            subworker.globalWait();
+            switchFrontier(tid, Frontier, output); //set new frontier
+        } else {
+            output = Frontier->getFrontier(tid);
+            //pthread_barrier_wait(global_barr);
+            subworker.globalWait();
+        }
 
-	if (subworker.isSubMaster()) {
-	    Frontier->calculateNumOfNonZero(tid);	   	  	  	    
-	}
-	//pthread_barrier_wait(global_barr);
-	subworker.globalWait();
-	gettimeofday(&endT, &tz);
-	double timeStart = ((double)startT.tv_sec) + ((double)startT.tv_usec) / 1000000.0;
-	double timeEnd = ((double)endT.tv_sec) + ((double)endT.tv_usec) / 1000000.0;
+        if (subworker.isSubMaster()) {
+            Frontier->calculateNumOfNonZero(tid);
+        }
+        //pthread_barrier_wait(global_barr);
+        subworker.globalWait();
+        gettimeofday(&endT, &tz);
+        double timeStart = ((double)startT.tv_sec) + ((double)startT.tv_usec) / 1000000.0;
+        double timeEnd = ((double)endT.tv_sec) + ((double)endT.tv_usec) / 1000000.0;
 
-	double mapTime = timeEnd - timeStart;
-	if (tid + subTid == 0) {
-	    printf("edge map time: %lf\n", mapTime);
-	}
-	//break;
+        double mapTime = timeEnd - timeStart;
+        if (tid + subTid == 0) {
+            printf("edge map time: %lf\n", mapTime);
+        }
+        //break;
     }
 
     if (tid + subTid == 0) {
-	cout << "Vertices visited = " << numVisited << "\n";
-	cout << "Finished in " << currIter << " iterations\n";
+        cout << "Vertices visited = " << numVisited << "\n";
+        cout << "Finished in " << currIter << " iterations\n";
     }
 
     pthread_barrier_wait(local_barr);
@@ -327,7 +334,7 @@ void *BFSWorker(void *arg) {
 
     //graph<vertex> localGraph = graphFilter(GA, rangeLow, rangeHi);
     graph<vertex> localGraph = graphFilter2Direction(GA, rangeLow, rangeHi);
-    
+
     while (shouldStart == 0);
     const intT n = GA.n;
     int numOfT = my_arg->numOfNode;
@@ -336,38 +343,38 @@ void *BFSWorker(void *arg) {
     intT *parents = parents_global;
 
     for (intT i = rangeLow; i < rangeHi; i++) {
-	parents[i] = -1;
+        parents[i] = -1;
     }
-    
+
     bool *frontier = (bool *)numa_alloc_local(sizeof(bool) * blockSize);
 
-    for(intT i=0;i<blockSize;i++) frontier[i] = false;
+    for(intT i=0; i<blockSize; i++) frontier[i] = false;
 
     LocalFrontier *current = new LocalFrontier(frontier, rangeLow, rangeHi);
 
     if (tid == 0)
-	Frontier = new vertices(numOfT);
+        Frontier = new vertices(numOfT);
 
     pthread_barrier_wait(&barr);
     Frontier->registerFrontier(tid, current);
     pthread_barrier_wait(&barr);
 
     if (tid == 0) {
-	Frontier->calculateOffsets();
-	Frontier->setBit(my_arg->start, true);
-	parents[my_arg->start] = my_arg->start;
+        Frontier->calculateOffsets();
+        Frontier->setBit(my_arg->start, true);
+        parents[my_arg->start] = my_arg->start;
     }
 
     if (my_arg->start >= rangeLow && my_arg->start < rangeHi) {
-	current->m = 1;
-	current->outEdgesCount = GA.V[my_arg->start].getOutDegree();
+        current->m = 1;
+        current->outEdgesCount = GA.V[my_arg->start].getOutDegree();
     }
-    
+
     bool *next = (bool *)numa_alloc_local(sizeof(bool) * blockSize);
     for (intT i = 0; i < blockSize; i++) next[i] = false;
-    
+
     LocalFrontier *output = new LocalFrontier(next, rangeLow, rangeHi);
-    
+
     int sizeOfShards[CORES_PER_NODE];
     partitionByDegree(GA, CORES_PER_NODE, sizeOfShards, sizeof(intT), true);
 
@@ -382,7 +389,7 @@ void *BFSWorker(void *arg) {
     pthread_barrier_wait(&barr);
     /*
     if (tid == 0)
-	Frontier->toSparse();
+    Frontier->toSparse();
     */
     /*
     current->s = (intT *)malloc(sizeof(intT) * GA.n);
@@ -393,46 +400,46 @@ void *BFSWorker(void *arg) {
     */
     /*
     if (tid == 0) {
-	Frontier->asyncQueue = (AsyncChunk **)malloc(sizeof(AsyncChunk *) * GA.n);
-	{parallel_for(intT i = 0; i < GA.n; i++) Frontier->asyncQueue[i] = NULL;}
-	AsyncChunk *firstChunk = newChunk(64);
-	firstChunk->m = 1;
-	firstChunk->s[0] = my_arg->start;
-	Frontier->asyncQueue[0] = firstChunk;
-	Frontier->readerTail = 1;
-	Frontier->m = 1;
+    Frontier->asyncQueue = (AsyncChunk **)malloc(sizeof(AsyncChunk *) * GA.n);
+    {parallel_for(intT i = 0; i < GA.n; i++) Frontier->asyncQueue[i] = NULL;}
+    AsyncChunk *firstChunk = newChunk(64);
+    firstChunk->m = 1;
+    firstChunk->s[0] = my_arg->start;
+    Frontier->asyncQueue[0] = firstChunk;
+    Frontier->readerTail = 1;
+    Frontier->m = 1;
     }
     */
     volatile int local_counter = 0;
     volatile int local_toggle = 0;
 
     pthread_t subTids[CORES_PER_NODE];
-    for (int i = 0; i < CORES_PER_NODE; i++) {	
-	BFS_subworker_arg *arg = (BFS_subworker_arg *)malloc(sizeof(BFS_subworker_arg));
-	arg->GA = (void *)(&localGraph);
-	arg->tid = tid;
-	arg->subTid = i;
-	arg->rangeLow = rangeLow;
-	arg->rangeHi = rangeHi;
-	arg->parents_ptr = parents;
+    for (int i = 0; i < CORES_PER_NODE; i++) {
+        BFS_subworker_arg *arg = (BFS_subworker_arg *)malloc(sizeof(BFS_subworker_arg));
+        arg->GA = (void *)(&localGraph);
+        arg->tid = tid;
+        arg->subTid = i;
+        arg->rangeLow = rangeLow;
+        arg->rangeHi = rangeHi;
+        arg->parents_ptr = parents;
 
-	arg->barr_counter = &local_counter;
-	arg->toggle = &local_toggle;
+        arg->barr_counter = &local_counter;
+        arg->toggle = &local_toggle;
 
-	arg->node_barr = &localBarr;
-	arg->node_barr2 = &localBarr2;
-	arg->global_barr = &global_barr;
-	arg->localFrontier = output;
-	
-	arg->startPos = startPos;
-	arg->endPos = startPos + sizeOfShards[i];
-	startPos = arg->endPos;
+        arg->node_barr = &localBarr;
+        arg->node_barr2 = &localBarr2;
+        arg->global_barr = &global_barr;
+        arg->localFrontier = output;
+
+        arg->startPos = startPos;
+        arg->endPos = startPos + sizeOfShards[i];
+        startPos = arg->endPos;
         pthread_create(&subTids[i], NULL, BFSSubWorker<vertex>, (void *)arg);
     }
 
     pthread_barrier_wait(&barr);
     //if (tid == 0)
-	//GA.del();
+    //GA.del();
     pthread_barrier_wait(&barr);
 
     pthread_barrier_wait(&timerBarr);
@@ -447,11 +454,11 @@ void *BFSWorker(void *arg) {
     gettimeofday(&timer_end, &timer_zone);
     double timeStart = ((double)timer_start.tv_sec) + ((double)timer_start.tv_usec) / 1000000.0;
     double timeEnd = ((double)timer_end.tv_sec) + ((double)timer_end.tv_usec) / 1000000.0;
-    
+
     double mapTime = timeEnd - timeStart;
-    if (tid == 0) 
-	printf("self counted time: %lf\n", mapTime);
-    
+    if (tid == 0)
+        printf("self counted time: %lf\n", mapTime);
+
     pthread_barrier_wait(&barr);
     return NULL;
 }
@@ -460,24 +467,26 @@ struct PR_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("BFS - struct PR_Hash_F\n");}
-    
+    PR_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum) {
+        printf("BFS - struct PR_Hash_F\n");
+    }
+
     inline int hashFunc(int index) {
-	if (index >= shardNum * vertPerShard) {
-	    return index;
-	}
-	int idxOfShard = index % shardNum;
-	int idxInShard = index / shardNum;
-	return (idxOfShard * vertPerShard + idxInShard);
+        if (index >= shardNum * vertPerShard) {
+            return index;
+        }
+        int idxOfShard = index % shardNum;
+        int idxInShard = index / shardNum;
+        return (idxOfShard * vertPerShard + idxInShard);
     }
 
     inline int hashBackFunc(int index) {
-	if (index >= shardNum * vertPerShard) {
-	    return index;
-	}
-	int idxOfShard = index / vertPerShard;
-	int idxInShard = index % vertPerShard;
-	return (idxOfShard + idxInShard * shardNum);
+        if (index >= shardNum * vertPerShard) {
+            return index;
+        }
+        int idxOfShard = index / vertPerShard;
+        int idxInShard = index % vertPerShard;
+        return (idxOfShard + idxInShard * shardNum);
     }
 };
 
@@ -501,7 +510,7 @@ void BFS(intT start, graph<vertex> &GA) {
     intT vertPerPage = PAGESIZE / sizeof(double);
     intT subShardSize = ((GA.n / numOfNode) / vertPerPage) * vertPerPage;
     for (int i = 0; i < numOfNode - 1; i++) {
-	sizeArr[i] = subShardSize;
+    sizeArr[i] = subShardSize;
     }
     sizeArr[numOfNode - 1] = GA.n - subShardSize * (numOfNode - 1);
     */
@@ -511,15 +520,15 @@ void BFS(intT start, graph<vertex> &GA) {
     pthread_t tids[numOfNode];
     int prev = 0;
     for (int i = 0; i < numOfNode; i++) {
-	BFS_worker_arg *arg = (BFS_worker_arg *)malloc(sizeof(BFS_worker_arg));
-	arg->GA = (void *)(&GA);
-	arg->tid = i;
-	arg->numOfNode = numOfNode;
-	arg->rangeLow = prev;
-	arg->rangeHi = prev + sizeArr[i];
-	arg->start = hasher.hashFunc(start);	
-	prev = prev + sizeArr[i];
-	pthread_create(&tids[i], NULL, BFSWorker<vertex>, (void *)arg);
+        BFS_worker_arg *arg = (BFS_worker_arg *)malloc(sizeof(BFS_worker_arg));
+        arg->GA = (void *)(&GA);
+        arg->tid = i;
+        arg->numOfNode = numOfNode;
+        arg->rangeLow = prev;
+        arg->rangeHi = prev + sizeArr[i];
+        arg->start = hasher.hashFunc(start);
+        prev = prev + sizeArr[i];
+        pthread_create(&tids[i], NULL, BFSWorker<vertex>, (void *)arg);
     }
     shouldStart = 1;
     pthread_barrier_wait(&timerBarr);
@@ -527,20 +536,20 @@ void BFS(intT start, graph<vertex> &GA) {
     startTime();
     printf("all created\n");
     for (int i = 0; i < numOfNode; i++) {
-	pthread_join(tids[i], NULL);
+        pthread_join(tids[i], NULL);
     }
     nextTime("BFS");
     if (needResult) {
-	int counter = 0;
-	for (intT i = 0; i < GA.n; i++) {
-	    if (parents_global[i] != -1)
-		counter++;
-	}
-	printf("Vert visited: %d\n", counter);
+        int counter = 0;
+        for (intT i = 0; i < GA.n; i++) {
+            if (parents_global[i] != -1)
+                counter++;
+        }
+        printf("Vert visited: %d\n", counter);
     }
 }
 
-int parallel_main(int argc, char* argv[]) {  
+int parallel_main(int argc, char* argv[]) {
     printf("BFS - parallel_main\n");
 
     char* iFile;
@@ -558,14 +567,14 @@ int parallel_main(int argc, char* argv[]) {
     if(argc > 5) if((string) argv[5] == (string) "-b") binary = true;
 
     if(symmetric) {
-	graph<symmetricVertex> G = 
-	    readGraph<symmetricVertex>(iFile,symmetric,binary); //symmetric graph
-	BFS((intT)start,G);
-	//G.del(); 
+        graph<symmetricVertex> G =
+            readGraph<symmetricVertex>(iFile,symmetric,binary); //symmetric graph
+        BFS((intT)start,G);
+        //G.del();
     } else {
-	graph<asymmetricVertex> G = 
-	    readGraph<asymmetricVertex>(iFile,symmetric,binary); //asymmetric graph
-	BFS((intT)start,G);
-	//G.del();
+        graph<asymmetricVertex> G =
+            readGraph<asymmetricVertex>(iFile,symmetric,binary); //asymmetric graph
+        BFS((intT)start,G);
+        //G.del();
     }
 }

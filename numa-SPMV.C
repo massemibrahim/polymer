@@ -1,9 +1,9 @@
-/* 
+/*
  * This code is part of the project "NUMA-aware Graph-structured Analytics"
- * 
+ *
  *
  * Copyright (C) 2014 Institute of Parallel And Distributed Systems (IPADS), Shanghai Jiao Tong University
- *     All rights reserved 
+ *     All rights reserved
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- * 
+ *
  * For more about this software, visit:
  *
  *     http://ipads.se.sjtu.edu.cn/projects/polymer.html
@@ -59,51 +59,57 @@ struct SPMV_F {
     vertex* V;
     int rangeLow;
     int rangeHi;
-    SPMV_F(double* _p_curr, double* _p_next, vertex* _V, int _rangeLow, int _rangeHi) : 
-	p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {printf("SPMV - struct SPMV_F\n");}
+    SPMV_F(double* _p_curr, double* _p_next, vertex* _V, int _rangeLow, int _rangeHi) :
+        p_curr(_p_curr), p_next(_p_next), V(_V), rangeLow(_rangeLow), rangeHi(_rangeHi) {
+        printf("SPMV - struct SPMV_F\n");
+    }
 
     inline void *nextPrefetchAddr(intT index) {
-	return &p_curr[index];
+        return &p_curr[index];
     }
-    inline bool update(intT s, intT d, int edgeLen){ //update function applies PageRank equation
-	p_next[d] += p_curr[s] * edgeLen;
-	return 1;
+    inline bool update(intT s, intT d, int edgeLen) { //update function applies PageRank equation
+        p_next[d] += p_curr[s] * edgeLen;
+        return 1;
     }
     inline bool updateAtomic (intT s, intT d, int edgeLen) { //atomic Update
-	writeAdd(&p_next[d], p_curr[s] * edgeLen);
-	/*
-	if (d == 110101) {
-	    cout << "Update from " << s << "\t" << std::scientific << std::setprecision(9) << p_curr[s]/V[s].getOutDegree() << " -- " << p_next[d] << "\n";
-	}
-	*/
-	return 1;
+        writeAdd(&p_next[d], p_curr[s] * edgeLen);
+        /*
+        if (d == 110101) {
+            cout << "Update from " << s << "\t" << std::scientific << std::setprecision(9) << p_curr[s]/V[s].getOutDegree() << " -- " << p_next[d] << "\n";
+        }
+        */
+        return 1;
     }
 
     inline void initFunc(void *dataPtr, intT d) {
-	*(double *)dataPtr = 0.0;
+        *(double *)dataPtr = 0.0;
     }
-    
+
     inline bool reduceFunc(void *dataPtr, intT s, intT edgeW) {
-	*(double *)dataPtr += p_curr[s] * edgeW;
-	return true;
+        *(double *)dataPtr += p_curr[s] * edgeW;
+        return true;
     }
 
     inline bool combineFunc(void *dataPtr, intT d) {
-	writeAdd(&p_next[d], *(double *)dataPtr);
-	return true;
+        writeAdd(&p_next[d], *(double *)dataPtr);
+        return true;
     }
 
-    inline bool cond (intT d) { return true; } //does nothing
+    inline bool cond (intT d) {
+        return true;    //does nothing
+    }
 };
 
 //resets p
 struct SPMV_Vertex_Reset {
     double* p_curr;
     SPMV_Vertex_Reset(double* _p_curr) :
-	p_curr(_p_curr) {printf("SPMV - struct SPMV_Vertex_Reset\n");}
+        p_curr(_p_curr) {
+        printf("SPMV - struct SPMV_Vertex_Reset\n");
+    }
     inline bool operator () (intT i) {
-	p_curr[i] = 0.0;
-	return 1;
+        p_curr[i] = 0.0;
+        return 1;
     }
 };
 
@@ -146,7 +152,7 @@ void *SPMVSubWorker(void *arg) {
 
     double *p_curr = *(my_arg->p_curr_ptr);
     double *p_next = *(my_arg->p_next_ptr);
-    
+
     int currIter = 0;
     int rangeLow = my_arg->rangeLow;
     int rangeHi = my_arg->rangeHi;
@@ -163,38 +169,40 @@ void *SPMVSubWorker(void *arg) {
 
     pthread_barrier_wait(local_barr);
     if (subworker.isMaster()) {
-	printf("started\n");
+        printf("started\n");
     }
     pthread_barrier_wait(&global_barr);
     All->m = GA.m;
     while(1) {
-	if (maxIter > 0 && currIter >= maxIter)
+        if (maxIter > 0 && currIter >= maxIter)
             break;
         currIter++;
-	if (subTid == 0) {
-	    {parallel_for(long i=output->startID;i<output->endID;i++) output->setBit(i, false);}
-	}
-	
-	pthread_barrier_wait(&global_barr);
-	edgeMapDenseForward(GA, All, SPMV_F<vertex>(p_curr, p_next, GA.V, rangeLow, rangeHi), output, true, start, end);
-	//edgeMapDenseForwardDynamic(GA, All, SPMV_F<vertex>(p_curr, p_next, GA.V, rangeLow, rangeHi), output, subworker);
-	//edgeMapDenseReduce(GA, All, SPMV_F<vertex>(p_curr, p_next, GA.V, rangeLow, rangeHi),output,false,subworker);
+        if (subTid == 0) {
+            {
+                parallel_for(long i=output->startID; i<output->endID; i++) output->setBit(i, false);
+            }
+        }
+
+        pthread_barrier_wait(&global_barr);
+        edgeMapDenseForward(GA, All, SPMV_F<vertex>(p_curr, p_next, GA.V, rangeLow, rangeHi), output, true, start, end);
+        //edgeMapDenseForwardDynamic(GA, All, SPMV_F<vertex>(p_curr, p_next, GA.V, rangeLow, rangeHi), output, subworker);
+        //edgeMapDenseReduce(GA, All, SPMV_F<vertex>(p_curr, p_next, GA.V, rangeLow, rangeHi),output,false,subworker);
         //edgeMap(GA, All, SPMV_F<vertex>(p_curr,p_next,GA.V,rangeLow,rangeHi),output,0,DENSE_FORWARD, false, true, subworker);
 
-	pthread_barrier_wait(&global_barr);
-	//pthread_barrier_wait(local_barr);
+        pthread_barrier_wait(&global_barr);
+        //pthread_barrier_wait(local_barr);
 
-	vertexMap(All,SPMV_Vertex_Reset(p_curr), tid, subTid, CORES_PER_NODE);
-	pthread_barrier_wait(&global_barr);
-	//pthread_barrier_wait(local_barr);
-	swap(p_curr, p_next);
+        vertexMap(All,SPMV_Vertex_Reset(p_curr), tid, subTid, CORES_PER_NODE);
+        pthread_barrier_wait(&global_barr);
+        //pthread_barrier_wait(local_barr);
+        swap(p_curr, p_next);
 
-	pthread_barrier_wait(&global_barr);
+        pthread_barrier_wait(&global_barr);
 
-	//pthread_barrier_wait(local_barr);
+        //pthread_barrier_wait(local_barr);
     }
     if (subworker.isMaster()) {
-	p_ans = p_curr;
+        p_ans = p_curr;
     }
     pthread_barrier_wait(local_barr);
     return NULL;
@@ -224,7 +232,7 @@ void *SPMVThread(void *arg) {
 
     pthread_barrier_wait(&barr);
     if (tid == 0)
-	GA.del();
+        GA.del();
     pthread_barrier_wait(&barr);
 
     printf("%d after partition\n", tid);
@@ -232,7 +240,7 @@ void *SPMVThread(void *arg) {
     int sizeOfShards[CORES_PER_NODE];
     subPartitionByDegree(localGraph, CORES_PER_NODE, sizeOfShards, sizeof(double), true, true);
     for (int i = 0; i < CORES_PER_NODE; i++) {
-	//printf("subPartition: %d %d: %d\n", tid, i, sizeOfShards[i]);
+        //printf("subPartition: %d %d: %d\n", tid, i, sizeOfShards[i]);
     }
 
     while (shouldStart == 0) ;
@@ -240,7 +248,7 @@ void *SPMVThread(void *arg) {
     printf("over filtering\n");
     /*
     if (0 != __cilkrts_set_param("nworkers","1")) {
-	printf("set failed: %d\n", tid);
+    printf("set failed: %d\n", tid);
     }
     */
 
@@ -252,72 +260,72 @@ void *SPMVThread(void *arg) {
     //printf("blockSizeof %d: %d low: %d high: %d\n", tid, blockSize, rangeLow, rangeHi);
 
     double one_over_n = 1/(double)n;
-    
-    
+
+
     double* p_curr = p_curr_global;
     double* p_next = p_next_global;
     bool* frontier = (bool *)numa_alloc_local(sizeof(bool) * blockSize);
-    
+
     /*
     double* p_curr = (double *)malloc(sizeof(double) * blockSize);
     double* p_next = (double *)malloc(sizeof(double) * blockSize);
     bool* frontier = (bool *)malloc(sizeof(bool) * blockSize);
     */
-    
+
     /*
     if (tid == 0)
-	startTime();
+    startTime();
     */
     double mapTime = 0.0;
     struct timeval start, end;
     struct timezone tz = {0, 0};
 
-    for(intT i=rangeLow;i<rangeHi;i++) p_curr[i] = one_over_n;
-    for(intT i=rangeLow;i<rangeHi;i++) p_next[i] = 0; //0 if unchanged
-    for(intT i=0;i<blockSize;i++) frontier[i] = true;
+    for(intT i=rangeLow; i<rangeHi; i++) p_curr[i] = one_over_n;
+    for(intT i=rangeLow; i<rangeHi; i++) p_next[i] = 0; //0 if unchanged
+    for(intT i=0; i<blockSize; i++) frontier[i] = true;
     if (tid == 0)
-	All = new vertices(numOfT);
+        All = new vertices(numOfT);
 
     //printf("register %d: %p\n", tid, frontier);
-    
+
     LocalFrontier *current = new LocalFrontier(frontier, rangeLow, rangeHi);
 
     bool* next = (bool *)numa_alloc_local(sizeof(bool) * blockSize);
-    for(intT i=0;i<blockSize;i++) next[i] = false;
+    for(intT i=0; i<blockSize; i++) next[i] = false;
     LocalFrontier *output = new LocalFrontier(next, rangeLow, rangeHi);
 
     pthread_barrier_wait(&barr);
-    
+
     All->registerFrontier(tid, current);
 
     pthread_barrier_wait(&barr);
 
     if (tid == 0)
-	All->calculateOffsets();
+        All->calculateOffsets();
 
     pthread_barrier_t localBarr;
     pthread_barrier_init(&localBarr, NULL, CORES_PER_NODE+1);
 
     int startPos = 0;
 
-    pthread_t subTids[CORES_PER_NODE];    
+    pthread_t subTids[CORES_PER_NODE];
 
-    for (int i = 0; i < CORES_PER_NODE; i++) {	
-	SPMV_subworker_arg *arg = (SPMV_subworker_arg *)malloc(sizeof(SPMV_subworker_arg));
-	arg->GA = (void *)(&localGraph);
-	arg->maxIter = maxIter;
-	arg->tid = tid;
-	arg->subTid = i;
-	arg->rangeLow = rangeLow;
-	arg->rangeHi = rangeHi;
-	arg->p_curr_ptr = &p_curr;
-	arg->p_next_ptr = &p_next;
-	arg->node_barr = &localBarr;
-	arg->localFrontier = output;
-	
-	arg->startPos = startPos;
-	arg->endPos = startPos + sizeOfShards[i];
-	startPos = arg->endPos;
+    for (int i = 0; i < CORES_PER_NODE; i++) {
+        SPMV_subworker_arg *arg = (SPMV_subworker_arg *)malloc(sizeof(SPMV_subworker_arg));
+        arg->GA = (void *)(&localGraph);
+        arg->maxIter = maxIter;
+        arg->tid = tid;
+        arg->subTid = i;
+        arg->rangeLow = rangeLow;
+        arg->rangeHi = rangeHi;
+        arg->p_curr_ptr = &p_curr;
+        arg->p_next_ptr = &p_next;
+        arg->node_barr = &localBarr;
+        arg->localFrontier = output;
+
+        arg->startPos = startPos;
+        arg->endPos = startPos + sizeOfShards[i];
+        startPos = arg->endPos;
         pthread_create(&subTids[i], NULL, SPMVSubWorker<vertex>, (void *)arg);
     }
 
@@ -335,31 +343,33 @@ struct SPMV_Hash_F {
     int shardNum;
     int vertPerShard;
     int n;
-    SPMV_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum){printf("SPMV - struct SPMV_Hash_F\n");}
-    
+    SPMV_Hash_F(int _n, int _shardNum):n(_n), shardNum(_shardNum), vertPerShard(_n / _shardNum) {
+        printf("SPMV - struct SPMV_Hash_F\n");
+    }
+
     inline int hashFunc(int index) {
-	if (index >= shardNum * vertPerShard) {
-	    return index;
-	}
-	int idxOfShard = index % shardNum;
-	int idxInShard = index / shardNum;
-	return (idxOfShard * vertPerShard + idxInShard);
+        if (index >= shardNum * vertPerShard) {
+            return index;
+        }
+        int idxOfShard = index % shardNum;
+        int idxInShard = index / shardNum;
+        return (idxOfShard * vertPerShard + idxInShard);
     }
 
     inline int hashBackFunc(int index) {
-	if (index >= shardNum * vertPerShard) {
-	    return index;
-	}
-	int idxOfShard = index / vertPerShard;
-	int idxInShard = index % vertPerShard;
-	return (idxOfShard + idxInShard * shardNum);
+        if (index >= shardNum * vertPerShard) {
+            return index;
+        }
+        int idxOfShard = index / vertPerShard;
+        int idxInShard = index % vertPerShard;
+        return (idxOfShard + idxInShard * shardNum);
     }
 };
 
 template <class vertex>
 void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
     printf("SPMV - SPMV_main\n");
-    
+
     numOfNode = numa_num_configured_nodes();
     vPerNode = GA.n / numOfNode;
     CORES_PER_NODE = numa_num_configured_cpus() / numOfNode;
@@ -375,7 +385,7 @@ void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
     intT vertPerPage = PAGESIZE / sizeof(double);
     intT subShardSize = ((GA.n / numOfNode) / vertPerPage) * vertPerPage;
     for (int i = 0; i < numOfNode - 1; i++) {
-	sizeArr[i] = subShardSize;
+    sizeArr[i] = subShardSize;
     }
     sizeArr[numOfNode - 1] = GA.n - subShardSize * (numOfNode - 1);
     */
@@ -386,15 +396,15 @@ void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
     pthread_t tids[numOfNode];
     int prev = 0;
     for (int i = 0; i < numOfNode; i++) {
-	SPMV_worker_arg *arg = (SPMV_worker_arg *)malloc(sizeof(SPMV_worker_arg));
-	arg->GA = (void *)(&GA);
-	arg->maxIter = maxIter;
-	arg->tid = i;
-	arg->numOfNode = numOfNode;
-	arg->rangeLow = prev;
-	arg->rangeHi = prev + sizeArr[i];
-	prev = prev + sizeArr[i];
-	pthread_create(&tids[i], NULL, SPMVThread<vertex>, (void *)arg);
+        SPMV_worker_arg *arg = (SPMV_worker_arg *)malloc(sizeof(SPMV_worker_arg));
+        arg->GA = (void *)(&GA);
+        arg->maxIter = maxIter;
+        arg->tid = i;
+        arg->numOfNode = numOfNode;
+        arg->rangeLow = prev;
+        arg->rangeHi = prev + sizeArr[i];
+        prev = prev + sizeArr[i];
+        pthread_create(&tids[i], NULL, SPMVThread<vertex>, (void *)arg);
     }
     shouldStart = 1;
     pthread_barrier_wait(&timerBarr);
@@ -402,17 +412,17 @@ void SPMV_main(wghGraph<vertex> &GA, int maxIter) {
     startTime();
     printf("all created\n");
     for (int i = 0; i < numOfNode; i++) {
-	pthread_join(tids[i], NULL);
+        pthread_join(tids[i], NULL);
     }
     nextTime("SPMV");
     if (needResult) {
-	for (intT i = 0; i < GA.n; i++) {
-	    cout << i << "\t" << std::scientific << std::setprecision(9) << p_ans[hasher.hashFunc(i)] << "\n";
-	}
+        for (intT i = 0; i < GA.n; i++) {
+            cout << i << "\t" << std::scientific << std::setprecision(9) << p_ans[hasher.hashFunc(i)] << "\n";
+        }
     }
 }
 
-int parallel_main(int argc, char* argv[]) {  
+int parallel_main(int argc, char* argv[]) {
     printf("SPMV - parallel_main\n");
 
     char* iFile;
@@ -427,15 +437,15 @@ int parallel_main(int argc, char* argv[]) {
     if(argc > 5) if((string) argv[5] == (string) "-b") binary = true;
     numa_set_interleave_mask(numa_all_nodes_ptr);
     if(symmetric) {
-	wghGraph<symmetricWghVertex> WG = 
-	    readWghGraph<symmetricWghVertex>(iFile,symmetric,binary);
-	SPMV_main(WG, maxIter);
-	//WG.del(); 
+        wghGraph<symmetricWghVertex> WG =
+            readWghGraph<symmetricWghVertex>(iFile,symmetric,binary);
+        SPMV_main(WG, maxIter);
+        //WG.del();
     } else {
-	wghGraph<asymmetricWghVertex> WG = 
-	    readWghGraph<asymmetricWghVertex>(iFile,symmetric,binary);
-	SPMV_main(WG, maxIter);
-	//WG.del();
+        wghGraph<asymmetricWghVertex> WG =
+            readWghGraph<asymmetricWghVertex>(iFile,symmetric,binary);
+        SPMV_main(WG, maxIter);
+        //WG.del();
     }
     return 0;
 }
