@@ -369,18 +369,30 @@ void graphAllEdgeHasher(graph<vertex> &GA, Hash_F hash) {
     vertex *newVertexSet = (vertex *)malloc(sizeof(vertex) * GA.n);
 
     {   parallel_for (intT i = 0; i < GA.n; i++) {
+            printf("Polymer - graphAllEdgeHasher - Vertex# = %d\n", i);
+
             intT d = V[i].getOutDegree();
+            printf("Polymer - graphAllEdgeHasher - Vertex# = %d - Degree Out = %d\n", i, d);
+
             V[i].setFakeDegree(d);
             intE *outEdges = V[i].getOutNeighborPtr();
             for (intT j = 0; j < d; j++) {
+                printf("Polymer - graphAllEdgeHasher - Vertex# = %d - Degree Out = %d - Edge#%d(Before Hash Fn) = %d\n", i, d, j, outEdges[j]);
                 outEdges[j] = hash.hashFunc(outEdges[j]);
+                printf("Polymer - graphAllEdgeHasher - Vertex# = %d - Degree Out = %d - Edge#%d(After Hash Fn) = %d\n", i, d, j, outEdges[j]);
             }
             d = V[i].getInDegree();
             intE *inEdges = V[i].getInNeighborPtr();
+            printf("Polymer - graphAllEdgeHasher - Vertex# = %d - Degree In = %d\n", i, d);
             for (intT j = 0; j < d; j++) {
+                printf("Polymer - graphAllEdgeHasher - Vertex# = %d - Degree In = %d - Edge#%d(Before Hash Fn) = %d\n", i, d, j, inEdges[j]);
                 inEdges[j] = hash.hashFunc(inEdges[j]);
+                printf("Polymer - graphAllEdgeHasher - Vertex# = %d - Degree In = %d - Edge#%d(After Hash Fn) = %d\n", i, d, j, inEdges[j]);
             }
-            newVertexSet[hash.hashFunc(i)] = V[i];
+            printf("Polymer - graphAllEdgeHasher - Vertex#(Before Hash Fn) = %d\n", i);
+            intT i_after_hash = hash.hashFunc(i);
+            newVertexSet[i_after_hash] = V[i];
+            printf("Polymer - graphAllEdgeHasher - Vertex#(Before Hash Fn) = %d\n", i_after_hash);
         }
     }
     GA.V = newVertexSet;

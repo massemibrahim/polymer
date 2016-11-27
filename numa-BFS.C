@@ -495,9 +495,18 @@ void BFS(intT start, graph<vertex> &GA) {
     printf("BFS - BFS\n");
 
     numOfNode = numa_num_configured_nodes();
+    printf("BFS - Number of NUMA Nodes = %d\n", numOfNode);    
+
     int numOfCpu = numa_num_configured_cpus();
-    CORES_PER_NODE = 10;//numOfCpu / numOfNode;
+    printf("BFS - Number of CPUs = %d\n", numOfCpu);
+
+    // CORES_PER_NODE = 10;//numOfCpu / numOfNode;
+    CORES_PER_NODE = numOfCpu / numOfNode;
+    printf("BFS - Cores/NUMA Node = %d\n", CORES_PER_NODE);
+
     vPerNode = GA.n / numOfNode;
+    printf("BFS - Vertex/NUMA Node = %d\n", vPerNode);
+
     pthread_barrier_init(&barr, NULL, numOfNode);
     pthread_barrier_init(&global_barr, NULL, numOfNode * CORES_PER_NODE);
     pthread_barrier_init(&timerBarr, NULL, numOfNode+1);
