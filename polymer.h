@@ -152,13 +152,16 @@ void partitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int size
     int *degrees = newA(int, n);
 
     int shardSize = n / numOfShards;
+    printf("Polymer - partitionByDegree - Vertices/NUMA Node = %d\n", shardSize);
 
     if (useOutDegree) {
         {
+            printf("Polymer - partitionByDegree - Work using Out degree");            
             parallel_for(intT i = 0; i < n; i++) degrees[i] = GA.V[i].getOutDegree();
         }
     } else {
         {
+            printf("Polymer - partitionByDegree - Work using In degree");
             parallel_for(intT i = 0; i < n; i++) degrees[i] = GA.V[i].getInDegree();
         }
     }
@@ -175,24 +178,46 @@ void partitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int size
     }
 
     int averageDegree = totalDegree / numOfShards;
-    printf("average is %d\n", averageDegree);
+    printf("Polymer - partitionByDegree - Average Degree = %d\n", averageDegree);
     int counter = 0;
     int tmpSizeCounter = 0;
+    printf("Polymer - partitionByDegree - Counter(Before Loop) = %d\n", counter);
+    printf("Polymer - partitionByDegree - Increment (in vertex) = %d\n", PAGESIZE/sizeOfOneEle);
     for (intT i = 0; i < n; i+=PAGESIZE/sizeOfOneEle) {
+        printf("Polymer - partitionByDegree - Index i = %d\n", i);
+
         int localAccum = 0;
         int localSize = 0;
         for (intT j = 0; j < PAGESIZE / sizeOfOneEle; j++) {
-            if (i + j >= n)
+            printf("Polymer - partitionByDegree - Index j = %d\n", j);
+
+            printf("Polymer - partitionByDegree - i + j = %d\n", i + j);
+            if (i + j >= n) 
+            {
+                printf("Polymer - partitionByDegree - i + j > n, then break!");
                 break;
+            }
             //accum[counter] += degrees[i + j];
             //sizeArr[counter]++;
             localAccum += degrees[i + j];
             localSize++;
             tmpSizeCounter++;
+
+            printf("Polymer - partitionByDegree - For i + j = %d - Local Accum = %d\n", i + j, localAccum);
+            printf("Polymer - partitionByDegree - For i + j = %d - Local Size = %d\n", i + j, localSize);
+            printf("Polymer - partitionByDegree - For i + j = %d - Temporary Size Counter = %d\n", i + j, tmpSizeCounter);
         }
         accum[counter] += localAccum;
         sizeArr[counter] += localSize;
+
+        printf("Polymer - partitionByDegree - Counter(After j Loop) = %d\n", counter);
+        printf("Polymer - partitionByDegree - For i = %d - Accum = %d\n", i, accum[counter]);
+        printf("Polymer - partitionByDegree - For i = %d - Size = %d\n", i, sizeArr[counter]);
+        printf("Polymer - partitionByDegree - For i = %d - Temporary Size Counter = %d\n", i, tmpSizeCounter);
+
         if (accum[counter] >= averageDegree && counter < numOfShards - 1) {
+            printf("Polymer - partitionByDegree - Accum > Average Degree && Counter < NUMA Node Count\n");
+
             int oldDiff = averageDegree - (accum[counter] - localAccum);
             int newDiff = accum[counter] - averageDegree;
             if (oldDiff < newDiff) {
@@ -207,6 +232,11 @@ void partitionByDegree(graph<vertex> GA, int numOfShards, int *sizeArr, int size
             sizeArr[counter] += localSize;
             //cout << tmpSizeCounter / (double)(PAGESIZE / sizeOfOneEle) << endl;
             tmpSizeCounter = 0;
+
+            printf("Polymer - partitionByDegree - Counter(After Check & Increment) = %d\n", counter);
+            printf("Polymer - partitionByDegree - For i = %d - Accum = %d\n", i, accum[counter]);
+            printf("Polymer - partitionByDegree - For i = %d - Size = %d\n", i, sizeArr[counter]);
+            printf("Polymer - partitionByDegree - For i = %d - Temporary Size Counter = %d\n", i, tmpSizeCounter);
         }
     }
 
@@ -392,7 +422,7 @@ void graphAllEdgeHasher(graph<vertex> &GA, Hash_F hash) {
             printf("Polymer - graphAllEdgeHasher - Vertex#(Before Hash Fn) = %d\n", i);
             intT i_after_hash = hash.hashFunc(i);
             newVertexSet[i_after_hash] = V[i];
-            printf("Polymer - graphAllEdgeHasher - Vertex#(Before Hash Fn) = %d\n", i_after_hash);
+            printf("Polymer - graphAllEdgeHasher - Vertex#(After Hash Fn) = %d\n", i_after_hash);
         }
     }
     GA.V = newVertexSet;
@@ -562,20 +592,28 @@ void *mapDataArray(int numOfShards, int *sizeArr, int sizeOfOneEle) {
     int numOfPages = 0;
     for (int i = 0; i < numOfShards; i++) {
         numOfPages += sizeArr[i] / (double)(PAGESIZE / sizeOfOneEle);
+        printf("Polymer - mapDataArray - Number of Pages on NUMA Node #%d = %d\n", sizeArr[i] / (double)(PAGESIZE / sizeOfOneEle));
     }
     numOfPages++;
+    printf("Polymer - mapDataArray - Number of Pages = %d\n", numOfPages);
 
     void *toBeReturned = mmap(NULL, numOfPages * PAGESIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (toBeReturned == NULL) {
         cout << "OOps" << endl;
     }
 
+    printf("Polymer - mapDataArray - Map data to NUMA Nodes\n");    
     int offset = 0;
+    printf("Polymer - mapDataArray - Offset = %d\n", offset);
     for (int i = 0; i < numOfShards; i++) {
+        printf("Polymer - mapDataArray - NUMA Node # = %d\n", i);
         void *startPos = (void *)((char *)toBeReturned + offset * sizeOfOneEle);
+        printf("Polymer - mapDataArray - Start Position = %d\n", startPos);
+        printf("Polymer - mapDataArray - Size Array = %d\n", sizeArr[i]);
         //printf("start binding %d : %d\n", i, offset);
         numa_tonode_memory(startPos, sizeArr[i], i);
         offset = offset + sizeArr[i];
+        printf("Polymer - mapDataArray - Offset = %d\n", offset);
     }
     return toBeReturned;
 }
